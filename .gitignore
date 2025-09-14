@@ -1,3 +1,10 @@
+*.env
+*.txt
+./app/__pycache__
+./app/__init__.py
+./app/routes/__pycache__
+./app/utils/__pycache__
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
