@@ -72,6 +72,10 @@ class QuestionRead(QuestionBase):
         orm_mode = True
 
 
+class QuestionUpdate(QuestionBase):
+    pass
+
+
 # =======================
 # ANSWER SCHEMAS
 # =======================

@@ -21,3 +21,10 @@ async def view_surveys(request: Request):
     return templates.TemplateResponse(
         request=request, name="surveys.html"
     )
+
+
+@router.get("/questions", response_class=HTMLResponse)
+async def view_questions(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="questions.html"
+    )

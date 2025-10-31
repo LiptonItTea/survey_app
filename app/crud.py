@@ -151,8 +151,8 @@ async def create_question(db: AsyncSession, text: str, multiple_answers: bool, i
     db.add(question)
     try:
         await db.commit()
-        await db.refresh()
-        return Question
+        await db.refresh(question)
+        return question
     except IntegrityError:
         await db.rollback()
         raise
@@ -166,6 +166,28 @@ async def get_question_by_id(db: AsyncSession, question_id: int) -> Optional[Que
 async def get_questions_by_survey(db: AsyncSession, survey_id: int) -> List[Question]:
     result = await db.execute(select(Question).where(Question.id_survey == survey_id))
     return result.scalars().all()
+
+
+async def get_questions(db: AsyncSession) -> List[Question]:
+    result = await db.execute(select(Question))
+    return result.scalars().all()
+
+
+async def update_question(db: AsyncSession, question_id: int, text: str, multiple_answers: bool) -> Question:
+    question = await get_question_by_id(db, question_id)
+    if not question:
+        return None
+    
+    question.text = text
+    question.multiple_answers = multiple_answers
+
+    try:
+        await db.commit()
+        await db.refresh(question)
+        return question
+    except IntegrityError:
+        await db.rollback()
+        raise
 
 
 async def delete_question(db: AsyncSession, question_id: int) -> bool:
@@ -191,8 +213,8 @@ async def create_answer(db: AsyncSession, text: str, id_question: int) -> Answer
     db.add(answer)
     try:
         await db.commit()
-        await db.refresh()
-        return Question
+        await db.refresh(answer)
+        return answer
     except IntegrityError:
         await db.rollback()
         raise
@@ -231,8 +253,8 @@ async def create_completed_survey(db: AsyncSession, id_user: int) -> CompletedSu
     db.add(completed_survey)
     try:
         await db.commit()
-        await db.refresh()
-        return Question
+        await db.refresh(completed_survey)
+        return completed_survey
     except IntegrityError:
         await db.rollback()
         raise
@@ -271,8 +293,8 @@ async def create_question_answer(db: AsyncSession, id_completed_survey: int, id_
     db.add(question_answer)
     try:
         await db.commit()
-        await db.refresh()
-        return Question
+        await db.refresh(question_answer)
+        return question_answer
     except IntegrityError:
         await db.rollback()
         raise
