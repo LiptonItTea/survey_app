@@ -22,6 +22,10 @@ class UserRead(UserBase):
 
     model_config = {"from_attributes": True}
 
+
+class UserUpdate(UserBase):
+    password: Optional[str] = None
+
 # =======================
 # SURVEY SCHEMAS
 # =======================

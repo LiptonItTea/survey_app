@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Users — Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border:1px solid #ddd;text-align:left}
+    form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+    input[type="text"],input[type="email"],input[type="password"],input[type="search"]{
+      padding:6px;border:1px solid #ccc;border-radius:4px
+    }
+    button{padding:6px 10px;border-radius:6px;border:0;background:#1976d2;color:white;cursor:pointer}
+    .danger{background:#d32f2f}
+    .secondary{background:#888}
+    .small{font-size:0.9rem;color:#555}
+    .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    .message{margin-top:10px;color:green}
+    .error{color:#b00020}
+    .searchBox{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .editRow input{width:90%}
+  </style>
+</head>
+<body>
+  <h1>Users</h1>
+
+  <!-- CREATE FORM -->
+  <div class="toolbar">
+    <form id="createForm">
+      <label>
+        Nickname<br/><input type="text" id="nickname" required />
+      </label>
+      <label>
+        Email<br/><input type="email" id="email" />
+      </label>
+      <label>
+        Password<br/><input type="password" id="password" required />
+      </label>
+      <button type="submit">Create User</button>
+    </form>
+  </div>
+
+  <!-- SEARCH BAR -->
+  <div class="searchBox">
+    <label for="searchInput"><strong>Search:</strong></label>
+    <input type="search" id="searchInput" placeholder="nickname or email..." />
+    <button id="searchBtn">Find</button>
+    <button id="resetBtn" type="button">Reset</button>
+  </div>
+
+  <div id="feedback" class="message" role="status" aria-live="polite"></div>
+
+  <table id="usersTable" aria-describedby="usersCaption">
+    <caption id="usersCaption" class="small">List of users</caption>
+    <thead>
+      <tr><th>ID</th><th>Nickname</th><th>Email</th><th>Registration</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000/api"; // use same origin; or set "http://localhost:8000" if needed
+const feedback = document.getElementById('feedback');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+function showMessage(msg, isError=false){
+  feedback.textContent = msg;
+  feedback.className = isError ? 'error' : 'message';
+  setTimeout(()=>{ feedback.textContent = ''; }, 4000);
+}
+
+function escapeHtml(s){ return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+async function fetchUsers(query=""){
+  try {
+    let url = `${API_BASE}/users/`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`Failed to load (${res.status})`);
+    let users = await res.json();
+
+    if (query) {
+      const q = query.toLowerCase();
+      users = users.filter(u =>
+        (u.nickname ?? '').toLowerCase().includes(q) ||
+        (u.email ?? '').toLowerCase().includes(q)
+      );
+    }
+
+    const tbody = document.querySelector('#usersTable tbody');
+    tbody.innerHTML = '';
+    users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${u.id ?? ''}</td>
+        <td>${escapeHtml(u.nickname)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${u.registration_date ?? ''}</td>
+        <td>
+          <button data-id="${u.id}" class="editBtn">Edit</button>
+          <button data-id="${u.id}" class="deleteBtn danger">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+// CREATE USER
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nickname = document.getElementById('nickname').value.trim();
+  const email = document.getElementById('email').value.trim() || null;
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await fetch(`${API_BASE}/users/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ nickname, email, password })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.detail || `Create failed (${res.status})`);
+    }
+    const created = await res.json();
+    showMessage(`Created user ${created.nickname} (id=${created.id})`);
+    e.target.reset();
+    await fetchUsers();
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+// DELETE USER
+document.querySelector('#usersTable').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button.deleteBtn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!confirm(`Delete user #${id}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+    showMessage(`Deleted user #${id}`);
+    await fetchUsers(searchInput.value);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+// EDIT USER
+document.querySelector('#usersTable').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button.editBtn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const tr = btn.closest('tr');
+  if (tr.classList.contains('editRow')) return; // already editing
+
+  const [idCell, nickCell, emailCell, regCell, actionCell] = tr.children;
+  const nickname = nickCell.textContent.trim();
+  const email = emailCell.textContent.trim();
+
+  tr.classList.add('editRow');
+  nickCell.innerHTML = `<input type="text" value="${escapeHtml(nickname)}" />`;
+  emailCell.innerHTML = `<input type="email" value="${escapeHtml(email)}" />`;
+  regCell.innerHTML = `<input type="password" placeholder="new password (optional)" />`;
+  actionCell.innerHTML = `
+    <button class="saveBtn" data-id="${id}">Save</button>
+    <button class="cancelBtn secondary">Cancel</button>`;
+
+  actionCell.querySelector('.saveBtn').addEventListener('click', async () => {
+    const newNick = nickCell.querySelector('input').value.trim();
+    const newEmail = emailCell.querySelector('input').value.trim();
+    const newPassword = regCell.querySelector('input').value.trim();
+
+    try {
+      const payload = { nickname: newNick, email: newEmail };
+      if (newPassword) payload.password = newPassword;
+
+      const res = await fetch(`${API_BASE}/users/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>null);
+        throw new Error(err?.detail || `Update failed (${res.status})`);
+      }
+      showMessage(`Updated user #${id}`);
+      await fetchUsers(searchInput.value);
+    } catch (err) {
+      showMessage(err.message, true);
+    }
+  });
+
+  actionCell.querySelector('.cancelBtn').addEventListener('click', () => {
+    fetchUsers(searchInput.value);
+  });
+});
+
+// SEARCH HANDLERS
+searchBtn.addEventListener('click', (e)=>{
+  e.preventDefault();
+  fetchUsers(searchInput.value.trim());
+});
+resetBtn.addEventListener('click', ()=>{
+  searchInput.value = '';
+  fetchUsers();
+});
+
+fetchUsers();
+</script>
+</body>
+</html>

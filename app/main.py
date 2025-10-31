@@ -1,8 +1,8 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from .db import engine
 from .models import Base
-from .routes import users, surveys, questions
+from .routes import users, surveys, questions, views
 from contextlib import asynccontextmanager
 
 
@@ -14,10 +14,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(users.router)
-app.include_router(surveys.router)
-app.include_router(questions.router)
 
+api = APIRouter(prefix="/api", tags=["api"])
+api.include_router(users.router)
+api.include_router(surveys.router)
+api.include_router(questions.router)
+
+app.include_router(api)
+app.include_router(views.router)
 
 # @app.on_event("startup")
 # async def on_startup():

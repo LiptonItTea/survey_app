@@ -50,6 +50,20 @@ async def create_user(db: AsyncSession, nickname: str, email: str, password: str
         raise
 
 
+async def delete_user(db: AsyncSession, id: int) -> bool:
+    user = await get_user_by_id(db, id)
+    if not user:
+        return False
+    
+    try:
+        await db.delete(user)
+        await db.commit()
+        return True
+    except IntegrityError:
+        await db.rollback()
+        raise
+
+
 # =======================
 # SURVEY CRUD
 # =======================

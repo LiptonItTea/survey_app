@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+
 from ..db import get_db
 from .. import crud, schemas
+from ..utils.security import hash_password, sanitize_string
 
 from typing import List
 from pydantic import BaseModel
@@ -17,7 +19,7 @@ async def create_user_endpoint(user_in: schemas.UserCreate, db: AsyncSession = D
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     try:
-        user = await crud.create_user(db, user_in.nickname, user_in.email, user_in.password)
+        user = await crud.create_user(db, sanitize_string(user_in.nickname), sanitize_string(user_in.email), user_in.password)
     except Exception as e:
         # You can refine exception handling (e.g. IntegrityError)
         print(e)
@@ -38,3 +40,27 @@ async def read_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     
     return user
+
+
+@router.put("/{user_id}", response_model=schemas.UserRead)
+async def update_user(user_id: int, updated: schemas.UserUpdate, db: AsyncSession = Depends(get_db)):
+    user = await crud.get_user_by_id(db, user_id)
+    if not user:
+        return HTTPException(status_code=404, detail="User not found")
+    
+    user.nickname = sanitize_string(updated.nickname)
+    user.email = sanitize_string(updated.email)
+    if updated.password:
+        user.hashed_password = hash_password(updated.password)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.delete("/{user_id}")
+async def read_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await crud.delete_user(db, user_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return "ok"

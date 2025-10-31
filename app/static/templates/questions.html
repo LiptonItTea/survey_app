@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Questions — Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border:1px solid #ddd;text-align:left}
+    form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+    input[type="text"], input[type="number"]{padding:6px;border:1px solid #ccc;border-radius:4px}
+    button{padding:6px 10px;border-radius:6px;border:0;background:#1976d2;color:white;cursor:pointer}
+    .danger{background:#d32f2f}
+    label.small{display:block;font-size:0.85rem;color:#555;margin-bottom:6px}
+    .message{margin-top:10px;color:green}
+    .error{color:#b00020}
+  </style>
+</head>
+<body>
+  <h1>Questions</h1>
+
+  <div>
+    <label class="small">Select survey to show questions:</label>
+    <select id="surveySelect"><option value="">-- select survey --</option></select>
+  </div>
+
+  <div style="margin-top:12px">
+    <form id="createForm">
+      <label>
+        Text<br/><input type="text" id="text" required style="width:360px"/>
+      </label>
+      <label>
+        Multiple answers<br/>
+        <select id="multiple_answers">
+          <option value="false">false</option>
+          <option value="true">true</option>
+        </select>
+      </label>
+      <label>
+        Survey ID<br/><input type="number" id="id_survey" required min="1" />
+      </label>
+      <button type="submit">Create Question</button>
+    </form>
+  </div>
+
+  <div id="feedback" class="message" role="status" aria-live="polite"></div>
+
+  <table id="questionsTable">
+    <thead>
+      <tr><th>ID</th><th>Text</th><th>Multiple</th><th>Survey ID</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+const API_BASE = ""; // set to API origin if needed
+const feedback = document.getElementById('feedback');
+function showMessage(msg, isError=false){
+  feedback.textContent = msg;
+  feedback.className = isError ? 'error' : 'message';
+  setTimeout(()=>{ feedback.textContent = '' }, 4000);
+}
+
+async function fetchSurveysForSelect(){
+  try {
+    const res = await fetch(`${API_BASE}/surveys/`);
+    if(!res.ok) throw new Error('Failed to load surveys');
+    const surveys = await res.json();
+    const sel = document.getElementById('surveySelect');
+    sel.innerHTML = '<option value="">-- select survey --</option>';
+    surveys.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.id} — ${s.name}`;
+      sel.appendChild(opt);
+    });
+  } catch(err){
+    showMessage(err.message, true);
+  }
+}
+
+async function fetchQuestionsBySurvey(surveyId){
+  try {
+    if(!surveyId){
+      document.querySelector('#questionsTable tbody').innerHTML = '';
+      return;
+    }
+    const res = await fetch(`${API_BASE}/questions/by-survey/${surveyId}`);
+    if(!res.ok) throw new Error(`Failed to load questions (${res.status})`);
+    const questions = await res.json();
+    const tbody = document.querySelector('#questionsTable tbody');
+    tbody.innerHTML = '';
+    questions.forEach(q => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${q.id ?? ''}</td>
+        <td>${escapeHtml(q.text ?? '')}</td>
+        <td>${q.multiple_answers ? 'yes' : 'no'}</td>
+        <td>${q.id_survey ?? ''}</td>
+        <td>
+          <button data-id="${q.id}" class="deleteBtn danger">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err){
+    showMessage(err.message, true);
+  }
+}
+
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+document.getElementById('surveySelect').addEventListener('change', (e)=>{
+  const id = e.target.value;
+  document.getElementById('id_survey').value = id || '';
+  fetchQuestionsBySurvey(id);
+});
+
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = document.getElementById('text').value.trim();
+  const multiple_answers = document.getElementById('multiple_answers').value === 'true';
+  const id_survey = Number(document.getElementById('id_survey').value);
+
+  try {
+    const res = await fetch(`${API_BASE}/questions/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text, multiple_answers, id_survey })
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.detail || `Create failed (${res.status})`);
+    }
+    const created = await res.json();
+    showMessage(`Created question id=${created.id}`);
+    e.target.reset();
+    document.getElementById('id_survey').value = id_survey; // restore
+    await fetchQuestionsBySurvey(id_survey);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+// delete handling
+document.querySelector('#questionsTable').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button.deleteBtn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!confirm(`Delete question #${id}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/questions/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.detail || `Delete failed (${res.status})`);
+    }
+    showMessage(`Deleted question #${id}`);
+    const selected = document.getElementById('surveySelect').value;
+    await fetchQuestionsBySurvey(selected);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+// init
+fetchSurveysForSelect();
+</script>
+</body>
+</html>

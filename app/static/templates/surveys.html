@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Surveys — Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border:1px solid #ddd;text-align:left}
+    form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+    input[type="text"], textarea, input[type="number"]{padding:6px;border:1px solid #ccc;border-radius:4px}
+    button{padding:6px 10px;border-radius:6px;border:0;background:#1976d2;color:white;cursor:pointer}
+    .danger{background:#d32f2f}
+    .small{font-size:0.9rem;color:#555}
+    .toolbar{display:flex;gap:12px;align-items:center}
+    .message{margin-top:10px;color:green}
+    .error{color:#b00020}
+  </style>
+</head>
+<body>
+  <h1>Surveys</h1>
+  <div class="toolbar">
+    <form id="createForm">
+      <label>
+        Name<br/><input type="text" id="name" required />
+      </label>
+      <label>
+        Description<br/><input type="text" id="description" />
+      </label>
+      <label>
+        Creator user id<br/><input type="number" id="id_user_created" required min="1" />
+      </label>
+      <button type="submit">Create Survey</button>
+    </form>
+  </div>
+
+  <div id="feedback" class="message" role="status" aria-live="polite"></div>
+
+  <table id="surveysTable">
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Description</th><th>Creator ID</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+const API_BASE = ""; // set to your API origin if needed
+const feedback = document.getElementById('feedback');
+function showMessage(msg, isError=false){
+  feedback.textContent = msg;
+  feedback.className = isError ? 'error' : 'message';
+  setTimeout(()=>{ feedback.textContent = '' }, 4000);
+}
+
+async function fetchSurveys(){
+  try {
+    const res = await fetch(`${API_BASE}/surveys/`);
+    if(!res.ok) throw new Error(`Failed to load (${res.status})`);
+    const surveys = await res.json();
+    const tbody = document.querySelector('#surveysTable tbody');
+    tbody.innerHTML = '';
+    surveys.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.id ?? ''}</td>
+        <td>${escapeHtml(s.name ?? '')}</td>
+        <td>${escapeHtml(s.description ?? '')}</td>
+        <td>${s.id_user_created ?? ''}</td>
+        <td>
+          <button data-id="${s.id}" class="deleteBtn danger">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  const description = document.getElementById('description').value.trim() || null;
+  const id_user_created = Number(document.getElementById('id_user_created').value);
+
+  try {
+    const res = await fetch(`${API_BASE}/surveys/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, description, id_user_created })
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.detail || `Create failed (${res.status})`);
+    }
+    const created = await res.json();
+    showMessage(`Created survey "${created.name}" (id=${created.id})`);
+    e.target.reset();
+    await fetchSurveys();
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+document.querySelector('#surveysTable').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button.deleteBtn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!confirm(`Delete survey #${id}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/surveys/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>null);
+      throw new Error(err?.detail || `Delete failed (${res.status})`);
+    }
+    showMessage(`Deleted survey #${id}`);
+    await fetchSurveys();
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+});
+
+fetchSurveys();
+</script>
+</body>
+</html>
