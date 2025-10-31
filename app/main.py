@@ -6,9 +6,6 @@ from .routes import users
 from contextlib import asynccontextmanager
 
 
-
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
