@@ -44,16 +44,10 @@ async def read_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=schemas.UserRead)
 async def update_user(user_id: int, updated: schemas.UserUpdate, db: AsyncSession = Depends(get_db)):
-    user = await crud.get_user_by_id(db, user_id)
+    user = await crud.update_user(db, user_id, sanitize_string(updated.nickname), sanitize_string(updated.email), updated.password)
     if not user:
         return HTTPException(status_code=404, detail="User not found")
     
-    user.nickname = sanitize_string(updated.nickname)
-    user.email = sanitize_string(updated.email)
-    if updated.password:
-        user.hashed_password = hash_password(updated.password)
-    await db.commit()
-    await db.refresh(user)
     return user
 
 
