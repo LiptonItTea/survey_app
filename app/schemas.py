@@ -20,9 +20,7 @@ class UserRead(UserBase):
     id: int
     registration_date: datetime
 
-    class Config:
-        orm_mode = True
-
+    model_config = {"from_attributes": True}
 
 # =======================
 # SURVEY SCHEMAS
@@ -34,12 +32,12 @@ class SurveyBase(BaseModel):
 
 
 class SurveyCreate(SurveyBase):
-    id_user_created: int
+    id_user_creator: int
 
 
 class SurveyRead(SurveyBase):
     id: int
-    id_user_created: int
+    id_user_creator: int
 
     class Config:
         orm_mode = True

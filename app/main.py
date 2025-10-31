@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from .db import engine
 from .models import Base
-from .routes import users
+from .routes import users, surveys, questions
 from contextlib import asynccontextmanager
 
 
@@ -15,6 +15,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(users.router)
+app.include_router(surveys.router)
+app.include_router(questions.router)
 
 
 # @app.on_event("startup")

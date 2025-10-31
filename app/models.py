@@ -29,7 +29,7 @@ class Survey(Base):
     id = Column(Integer, nullable=False, primary_key=True)
     name = Column(VARCHAR(100), nullable=False)
     description = Column(Text, nullable=True)
-    id_user_created = Column(Integer, ForeignKey("user_accs.id", ondelete="CASCADE"), nullable=False)
+    id_user_creator = Column(Integer, ForeignKey("user_accs.id", ondelete="CASCADE"), nullable=False)
     
     # Relationships
     creator = relationship("User", back_populates="created_surveys")

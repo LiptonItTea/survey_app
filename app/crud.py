@@ -11,6 +11,8 @@ from .models import (
 )
 from .utils.security import hash_password, verify_password
 
+from .schemas import UserRead
+
 from typing import Optional, List
 
 
@@ -27,6 +29,11 @@ async def get_user_by_id(db: AsyncSession, id: int) -> Optional[User]:
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalars().first()
+
+
+async def get_users(db: AsyncSession) -> List[User]:
+    result = await db.execute(select(User))
+    return result.scalars().all()
 
 
 async def create_user(db: AsyncSession, nickname: str, email: str, password: str) -> User:
@@ -67,7 +74,7 @@ async def get_survey_by_id(db: AsyncSession, survey_id: int) -> Optional[Survey]
 
 async def get_all_surveys(db: AsyncSession) -> List[Survey]:
     result = await db.execute(select(Survey))
-    return result
+    return result.scalars().all()
 
 
 async def delete_survey(db: AsyncSession, survey_id: int) -> bool:
