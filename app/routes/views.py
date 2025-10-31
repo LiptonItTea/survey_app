@@ -8,8 +8,16 @@ router = APIRouter(tags=["views"])
 
 templates = Jinja2Templates(directory="./app/static/templates")
 
+
 @router.get("/users", response_class=HTMLResponse)
 async def view_users(request: Request):
     return templates.TemplateResponse(
         request=request, name="users.html"
+    )
+
+
+@router.get("/surveys", response_class=HTMLResponse)
+async def view_surveys(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="surveys.html"
     )

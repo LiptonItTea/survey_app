@@ -88,13 +88,13 @@ async def delete_user(db: AsyncSession, id: int) -> bool:
 # =======================
 
 
-async def create_survey(db: AsyncSession, name: str, description: Optional[str], id_user_created: int) -> Survey:
-    survey = Survey(name=name, description=description, id_user_created=id_user_created)
+async def create_survey(db: AsyncSession, name: str, description: Optional[str], id_user_creator: int) -> Survey:
+    survey = Survey(name=name, description=description, id_user_creator=id_user_creator)
     db.add(survey)
     try:
         await db.commit()
         await db.refresh(survey)
-        return User
+        return survey
     except IntegrityError:
         await db.rollback()
         raise
@@ -110,8 +110,26 @@ async def get_all_surveys(db: AsyncSession) -> List[Survey]:
     return result.scalars().all()
 
 
+async def update_survey(db: AsyncSession, survey_id: int, name: str, description: str) -> Survey:
+    survey = await get_survey_by_id(db, survey_id)
+    if not survey:
+        return None
+    
+    survey.name = name
+    if description:
+        survey.description = description
+
+    try:
+        await db.commit()
+        await db.refresh(survey)
+        return survey
+    except IntegrityError:
+        await db.rollback()
+        raise
+
+
 async def delete_survey(db: AsyncSession, survey_id: int) -> bool:
-    survey = get_survey_by_id(db, survey_id)
+    survey = await get_survey_by_id(db, survey_id)
     if not survey:
         return False
     try:
@@ -151,7 +169,7 @@ async def get_questions_by_survey(db: AsyncSession, survey_id: int) -> List[Ques
 
 
 async def delete_question(db: AsyncSession, question_id: int) -> bool:
-    question = get_question_by_id(db, question_id)
+    question = await get_question_by_id(db, question_id)
     if not question:
         return False
     try:
@@ -191,7 +209,7 @@ async def get_answers_by_question(db: AsyncSession, question_id: int) -> List[An
 
 
 async def delete_answer(db: AsyncSession, answer_id: int) -> bool:
-    answer = get_answer_by_id(db, answer_id)
+    answer = await get_answer_by_id(db, answer_id)
     if not answer:
         return False
     try:
@@ -231,7 +249,7 @@ async def get_completed_surveys_by_user(db: AsyncSession, user_id: int) -> List[
 
 
 async def delete_completed_survey(db: AsyncSession, completed_survey_id: int) -> bool:
-    completed_survey = get_completed_survey_by_id(db, completed_survey_id)
+    completed_survey = await get_completed_survey_by_id(db, completed_survey_id)
     if not completed_survey:
         return False
     try:
@@ -271,7 +289,7 @@ async def get_question_answers_by_completed_survey(db: AsyncSession, cs_id: int)
 
 
 async def delete_question_answer(db: AsyncSession, question_answer_id: int) -> bool:
-    question_answer = get_question_answer_by_id(db, question_answer_id)
+    question_answer = await get_question_answer_by_id(db, question_answer_id)
     if not question_answer:
         return False
     try:

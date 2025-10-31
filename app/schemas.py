@@ -47,6 +47,10 @@ class SurveyRead(SurveyBase):
         orm_mode = True
 
 
+class SurveyUpdate(SurveyBase):
+    pass
+
+
 # =======================
 # QUESTION SCHEMAS
 # =======================
