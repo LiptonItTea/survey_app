@@ -9,7 +9,10 @@ from .models import (
     CompletedSurvey,
     QuestionAnswer
 )
-from .utils.security import hash_password, verify_password
+from .utils.security import hash_password, verify_password, get_token_nickname, oauth2_scheme
+
+from fastapi import Request, Depends
+from .db import get_db
 
 from .schemas import UserRead
 
@@ -26,8 +29,23 @@ async def get_user_by_id(db: AsyncSession, id: int) -> Optional[User]:
     return result.scalars().first()
 
 
+async def get_user_by_token(request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> Optional[User]:
+    nickname = get_token_nickname(request, token)
+    return await get_user_by_nickname(db, nickname)
+
+
+async def get_user_by_nickname(db: AsyncSession, nickname: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.nickname == nickname))
+    return result.scalars().first()
+
+
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     result = await db.execute(select(User).where(User.email == email))
+    return result.scalars().first()
+
+
+async def get_user_by_login_password(db: AsyncSession, nickname: str, password: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.nickname == nickname and User.hashed_password == password))
     return result.scalars().first()
 
 
