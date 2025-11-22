@@ -12,7 +12,12 @@ router = APIRouter(prefix="/questions", tags=["questions"])
 
 
 @router.post("/", response_model=schemas.QuestionRead, status_code=status.HTTP_201_CREATED)
-async def create_question(question_in: schemas.QuestionCreate, db: AsyncSession = Depends(get_db)):
+async def create_question(question_in: schemas.QuestionCreate, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
+    survey = await crud.get_survey_by_id(question_in.id_survey)
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    if survey.id_user_creator != current_user.id:
+        raise HTTPException(status_code=403, detail="Your access token doesn't match your survey")
     try:
         question = await crud.create_question(db, sanitize_string(question_in.text), question_in.multiple_answers, question_in.id_survey)
     except IntegrityError:
@@ -24,13 +29,13 @@ async def create_question(question_in: schemas.QuestionCreate, db: AsyncSession 
 
 
 @router.get("/", response_model=List[schemas.QuestionRead])
-async def read_questions(db: AsyncSession = Depends(get_db)):
+async def read_questions(db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token_admin)):
     result = await crud.get_questions(db)
     return result
 
 
 @router.get("/{question_id}", response_model=schemas.QuestionRead)
-async def read_question_by_id(question_id: int, db: AsyncSession = Depends(get_db)):
+async def read_question_by_id(question_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
     result = await crud.get_question_by_id(db, question_id)
     
     if not result:
@@ -40,24 +45,32 @@ async def read_question_by_id(question_id: int, db: AsyncSession = Depends(get_d
 
 
 @router.get("/bysurvey/{survey_id}", response_model=List[schemas.QuestionRead])
-async def read_question_by_survey_id(survey_id: int, db: AsyncSession = Depends(get_db)):
+async def read_question_by_survey_id(survey_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
     result = await crud.get_questions_by_survey(db, survey_id)
     return result
 
 
 @router.put("/{question_id}", response_model=schemas.QuestionRead)
-async def update_question(question_id: int, updated: schemas.QuestionUpdate, db: AsyncSession = Depends(get_db)):
-    question = await crud.update_question(db, question_id, sanitize_string(updated.text), updated.multiple_answers)
+async def update_question(question_id: int, updated: schemas.QuestionUpdate, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
+    question = await crud.get_question_by_id(question_id)
     if not question:
-        return HTTPException(status_code=404, detail="Question not found")
-    
+        raise HTTPException(status_code=404, detail="Question not found")
+    survey = await crud.get_survey_by_id(db, question.id_survey)
+    if survey.id_user_creator != current_user.id:
+        raise HTTPException(status_code=403, detail="Your access token doesn't match the survey")
+        
+    question = await crud.update_question(db, question_id, sanitize_string(updated.text), updated.multiple_answers)
     return question
 
 
 @router.delete("/{question_id}")
-async def delete_question_by_id(question_id: int, db: AsyncSession = Depends(get_db)):
-    result = await crud.delete_question(db, question_id)
-    if not result:
+async def delete_question_by_id(question_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
+    question = await crud.get_question_by_id(question_id)
+    if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+    survey = await crud.get_survey_by_id(db, question.id_survey)
+    if survey.id_user_creator != current_user.id:
+        raise HTTPException(status_code=403, detail="Your access token doesn't match the survey")
     
+    result = await crud.delete_question(db, question_id)
     return "ok"

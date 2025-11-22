@@ -123,6 +123,9 @@ async def create_survey(db: AsyncSession, name: str, description: Optional[str],
         raise
 
 
+# async def get_survey_by_question(db: AsyncSession, question_id: )
+
+
 async def get_survey_by_id(db: AsyncSession, survey_id: int) -> Optional[Survey]:
     result = await db.execute(select(Survey).where(Survey.id == survey_id))
     return result.scalars().first()
