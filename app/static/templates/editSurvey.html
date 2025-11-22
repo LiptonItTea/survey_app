@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Survey</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-top: 40px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 6px;
+            margin: 4px 0 12px 0;
+            box-sizing: border-box;
+        }
+
+        .question-box, .answer-box {
+            border: 1px solid #aaa;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .danger {
+            background: #c34;
+            color: white;
+        }
+
+        .small {
+            font-size: 12px;
+        }
+
+        .indent {
+            margin-left: 25px;
+        }
+    </style>
+</head>
+<body>
+<h1>Edit Survey</h1>
+
+<div>
+    <label>Survey name:</label>
+    <input id="surveyName" type="text">
+
+    <label>Description:</label>
+    <textarea id="surveyDesc" rows="3"></textarea>
+
+    <div class="row">
+        <button id="saveSurvey">Save Survey</button>
+        <button id="deleteSurvey" class="danger">Delete Survey</button>
+    </div>
+</div>
+
+<h2>Questions</h2>
+<div id="questionsContainer"></div>
+
+<button id="addQuestion">Add Question</button>
+
+<script>
+    const surveyId = window.location.pathname.split("/").pop();
+
+    async function fetchSurvey() {
+        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
+            credentials: "include"
+        });
+        if (!res.ok) {
+            alert("Failed to load survey.");
+            return;
+        }
+        const data = await res.json();
+        renderSurvey(data);
+    }
+
+    function renderSurvey(s) {
+        document.getElementById("surveyName").value = s.name;
+        document.getElementById("surveyDesc").value = s.description || "";
+
+        const container = document.getElementById("questionsContainer");
+        container.innerHTML = "";
+
+        s.questions.forEach(q => {
+            container.appendChild(renderQuestion(q));
+        });
+    }
+
+    function renderQuestion(q) {
+        const div = document.createElement("div");
+        div.className = "question-box";
+
+        div.innerHTML = `
+            <label>Question text:</label>
+            <input type="text" class="q-text" value="${q.text}">
+
+            <div class="row">
+                <label class="small">Multiple answers?</label>
+                <input type="checkbox" class="q-multi" ${q.multiple_answers ? "checked" : ""}>
+            </div>
+
+            <div class="row">
+                <button class="save-q">Save Question</button>
+                <button class="del-q danger">Delete Question</button>
+            </div>
+
+            <h4>Answers</h4>
+            <div class="answers"></div>
+
+            <button class="add-answer small">Add Answer</button>
+        `;
+
+        const saveBtn = div.querySelector(".save-q");
+        saveBtn.onclick = async () => {
+            const updated = {
+                text: div.querySelector(".q-text").value,
+                multiple_answers: div.querySelector(".q-multi").checked
+            };
+
+            const res = await fetch(`http://localhost:8000/api/questions/${q.id}`, {
+                method: "PUT",
+                credentials: "include",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(updated)
+            });
+
+            if (!res.ok) alert("Failed to update question");
+        };
+
+        const delBtn = div.querySelector(".del-q");
+        delBtn.onclick = async () => {
+            if (!confirm("Delete question?")) return;
+            const res = await fetch(`http://localhost:8000/api/questions/${q.id}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            if (res.ok) div.remove();
+        };
+
+        const answersDiv = div.querySelector(".answers");
+
+        q.answers.forEach(a => {
+            answersDiv.appendChild(renderAnswer(a));
+        });
+
+        const addAnswerBtn = div.querySelector(".add-answer");
+        addAnswerBtn.onclick = async () => {
+            const res = await fetch(`http://localhost:8000/api/answers/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text: "New answer", question_id: q.id})
+            });
+            if (res.ok) {
+                const newA = await res.json();
+                answersDiv.appendChild(renderAnswer(newA));
+            }
+        };
+
+        return div;
+    }
+
+    function renderAnswer(a) {
+        const div = document.createElement("div");
+        div.className = "answer-box indent";
+
+        div.innerHTML = `
+            <input type="text" class="a-text" value="${a.text}">
+            <div class="row">
+                <button class="save-a small">Save Answer</button>
+                <button class="del-a small danger">Delete</button>
+            </div>
+        `;
+
+        div.querySelector(".save-a").onclick = async () => {
+            const updated = {text: div.querySelector(".a-text").value};
+            const res = await fetch(`http://localhost:8000/api/answers/${a.id}`, {
+                method: "PUT",
+                credentials: "include",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(updated)
+            });
+            if (!res.ok) alert("Failed to update answer");
+        };
+
+        div.querySelector(".del-a").onclick = async () => {
+            if (!confirm("Delete answer?")) return;
+            const res = await fetch(`http://localhost:8000/api/answers/${a.id}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            if (res.ok) div.remove();
+        };
+
+        return div;
+    }
+
+    document.getElementById("addQuestion").onclick = async () => {
+        const res = await fetch(`http://localhost:8000/api/questions/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                text: "New question",
+                survey_id: parseInt(surveyId),
+                multiple_answers: false
+            })
+        });
+
+        if (res.ok) {
+            const q = await res.json();
+            document.getElementById("questionsContainer")
+                .appendChild(renderQuestion(q));
+        }
+    };
+
+    document.getElementById("saveSurvey").onclick = async () => {
+        const updated = {
+            name: document.getElementById("surveyName").value,
+            description: document.getElementById("surveyDesc").value
+        };
+
+        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
+            method: "PUT",
+            credentials: "include",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(updated)
+        });
+
+        if (!res.ok) alert("Failed to save survey");
+    };
+
+    document.getElementById("deleteSurvey").onclick = async () => {
+        if (!confirm("Delete whole survey?")) return;
+        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
+            method: "DELETE",
+            credentials: "include"
+        });
+        if (res.ok) {
+            window.location.href = "/dashboard";
+        }
+    };
+
+    fetchSurvey();
+</script>
+</body>
+</html>
