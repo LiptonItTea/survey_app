@@ -9,7 +9,7 @@ from .models import (
     CompletedSurvey,
     QuestionAnswer
 )
-from .utils.security import hash_password, verify_password, get_token_nickname, get_token_nickname_admin, oauth2_scheme
+from .utils.security import hash_password, verify_password, get_token_data, get_token_data_admin, oauth2_scheme
 
 from fastapi import Request, Depends
 from .db import get_db
@@ -30,13 +30,13 @@ async def get_user_by_id(db: AsyncSession, id: int) -> Optional[User]:
 
 
 async def get_user_by_token(request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> Optional[User]:
-    nickname = get_token_nickname(request, token)
-    return await get_user_by_nickname(db, nickname)
+    data = get_token_data(request, token)
+    return await get_user_by_id(db, data.get("id"))
 
 
 async def get_user_by_token_admin(request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> Optional[User]:
-    nickname = get_token_nickname_admin(request, token)
-    return await get_user_by_nickname(db, nickname)
+    data = get_token_data_admin(request, token)
+    return await get_user_by_id(db, data.get("id"))
 
 
 async def get_user_by_nickname(db: AsyncSession, nickname: str) -> Optional[User]:
@@ -58,7 +58,7 @@ async def get_user_by_survey_id(db: AsyncSession, survey_id: int) -> Optional[Us
     survey = await db.execute(select(Survey).where(Survey.id == survey_id))
     if not survey:
         return None
-    return get_user_by_id(db, survey.scalars().first().id_user_creator)
+    return await get_user_by_id(db, survey.scalars().first().id_user_creator)
 
 
 async def get_user_by_question_id(db: AsyncSession, question_id: int) -> Optional[User]:
@@ -144,7 +144,9 @@ async def create_survey(db: AsyncSession, name: str, description: Optional[str],
         raise
 
 
-# async def get_survey_by_question(db: AsyncSession, question_id: )
+async def get_survey_by_user_id(db: AsyncSession, user_id: int) -> List[Survey]:
+    result = await db.execute(select(Survey).where(Survey.id_user_creator == user_id))
+    return result.scalars().all()
 
 
 async def get_survey_by_id(db: AsyncSession, survey_id: int) -> Optional[Survey]:

@@ -30,6 +30,12 @@ async def read_surveys(db: AsyncSession = Depends(get_db), current_user = Depend
     return result
 
 
+@router.get("/my", response_model=List[schemas.SurveyRead])
+async def read_my_surveyes(db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
+    result = await crud.get_survey_by_user_id(db, current_user.id)
+    return result
+
+
 @router.get("/{survey_id}", response_model=schemas.SurveyRead)
 async def read_survey_by_id(survey_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
     result = await crud.get_survey_by_id(db, survey_id)

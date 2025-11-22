@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from ..crud import get_user_by_token_admin
+from ..crud import get_user_by_token_admin, get_user_by_token
 
 router = APIRouter(tags=["views"])
 # router.mount("/app/static", StaticFiles(directory="./app/static"), name="static")
@@ -32,7 +32,14 @@ async def view_questions(request: Request, current_user = Depends(get_user_by_to
     )
 
 @router.get("/", response_class=HTMLResponse)
-async def base(request: Request):
+async def auth(request: Request):
     return templates.TemplateResponse(
         request=request, name="auth.html"
+    )
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(requst: Request, current_user = Depends(get_user_by_token)):
+    return templates.TemplateResponse(
+        request=requst, name="dashboard.html"
     )

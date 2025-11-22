@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 24px;
+      background: #fafafa;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    header a {
+      font-size: 1rem;
+      color: #1976d2;
+      text-decoration: none;
+    }
+    h1 { margin: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 16px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th { background: #f0f0f0; }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .danger { background: #d32f2f; color: white; }
+    .primary { background: #1976d2; color: white; }
+    .secondary { background: #666; color: white; }
+
+    #feedback {
+      margin-top: 12px;
+      min-height: 20px;
+    }
+    .error { color: #c00; }
+    .success { color: #090; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 id="greeting">Welcome</h1>
+  <a href="/accountSettings.html">Account Settings</a>
+</header>
+
+<h2>Your Surveys</h2>
+
+<div id="feedback"></div>
+
+<table id="surveysTable">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Solves</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const API = "http://localhost:8000/api/surveys";
+const feedback = document.getElementById("feedback");
+
+function msg(text, isErr=false) {
+  feedback.textContent = text;
+  feedback.className = isErr ? "error" : "success";
+  setTimeout(() => { feedback.textContent = ""; }, 4000);
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+async function fetchMySurveys() {
+  try {
+    const res = await fetch(`${API}/my`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const d = await res.json().catch(()=>null);
+      throw new Error(d?.detail || "Failed to load your surveys");
+    }
+
+    const surveys = await res.json();
+    buildTable(surveys);
+
+  } catch (err) {
+    msg(err.message, true);
+  }
+}
+
+function buildTable(items) {
+  const tbody = document.querySelector("#surveysTable tbody");
+  tbody.innerHTML = "";
+
+  for (const s of items) {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${s.id}</td>
+      <td>${escapeHtml(s.name)}</td>
+      <td>${Math.floor(Math.random() * 50) + 1}</td>
+      <td>
+        <button class="primary unloadBtn" data-id="${s.id}">Unload</button>
+        <a href="http://localhost:8000/editSurvey/${s.id}">
+          <button class="secondary">Edit</button>
+        </a>
+        <button class="danger deleteBtn" data-id="${s.id}">Delete</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  }
+}
+
+document.addEventListener("click", async (ev) => {
+  // UNLOAD
+  const unload = ev.target.closest(".unloadBtn");
+  if (unload) {
+    const id = unload.dataset.id;
+
+    try {
+      const res = await fetch(`${API}/unload/${id}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      if (!res.ok) throw new Error("Failed to unload data");
+
+      msg(`Survey #${id} unloaded`);
+    } catch (e) {
+      msg(e.message, true);
+    }
+
+    return;
+  }
+
+  // DELETE
+  const del = ev.target.closest(".deleteBtn");
+  if (del) {
+    const id = del.dataset.id;
+    if (!confirm(`Delete survey #${id}?`)) return;
+
+    try {
+      const res = await fetch(`${API}/${id}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      if (!res.ok) throw new Error("Failed to delete survey");
+
+      msg(`Survey #${id} deleted`);
+      fetchMySurveys();
+
+    } catch (e) {
+      msg(e.message, true);
+    }
+  }
+});
+
+// optional small greeting; backend should later expose /me endpoint
+document.getElementById("greeting").textContent = "Welcome, user";
+
+fetchMySurveys();
+</script>
+
+</body>
+</html>

@@ -40,7 +40,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-def get_token_nickname(request: Request, token: str) -> User:
+def get_token_data(request: Request, token: str) -> User:
     if not token:
         token = request.cookies.get("access_token")
 
@@ -59,10 +59,10 @@ def get_token_nickname(request: Request, token: str) -> User:
     except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    return nickname
+    return payload
 
 
-def get_token_nickname_admin(request: Request, token: str) -> User:
+def get_token_data_admin(request: Request, token: str) -> User:
     if not token:
         token = request.cookies.get("access_token")
 
@@ -85,4 +85,4 @@ def get_token_nickname_admin(request: Request, token: str) -> User:
     except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    return nickname
+    return payload

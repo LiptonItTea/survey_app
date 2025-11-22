@@ -22,7 +22,7 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
     if user.nickname == "meow":
         role = "admin"
 
-    access_token = create_access_token(data={"sub": user.nickname, "role": role})
+    access_token = create_access_token(data={"sub": user.nickname, "role": role, "id": user.id})
 
     response.set_cookie(
         key="access_token",
