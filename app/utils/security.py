@@ -81,7 +81,7 @@ def get_token_nickname_admin(request: Request, token: str) -> User:
         if nickname is None or role is None:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         if role != "admin":
-            raise HTTPException(status_code=404, detail="Admin not found")
+            raise HTTPException(status_code=404, detail="Not an admin")
     except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
