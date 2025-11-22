@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI, APIRouter
 from .db import engine
 from .models import Base
-from .routes import users, surveys, questions, views, auth
+from .routes import users, surveys, questions, answers, views, auth
 from contextlib import asynccontextmanager
 
 
@@ -19,6 +19,7 @@ api = APIRouter(prefix="/api", tags=["api"])
 api.include_router(users.router)
 api.include_router(surveys.router)
 api.include_router(questions.router)
+api.include_router(answers.router)
 
 app.include_router(api)
 app.include_router(views.router)

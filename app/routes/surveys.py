@@ -38,8 +38,12 @@ async def read_survey_by_id(survey_id: int, db: AsyncSession = Depends(get_db), 
 
 @router.put("/{survey_id}", response_model=schemas.SurveyRead)
 async def update_survey(survey_id: int, updated: schemas.SurveyUpdate, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
-    if (await crud.get_survey_by_id(db, survey_id)).id_user_creator != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your survey")
+    user = await crud.get_user_by_survey_id(db, survey_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User doesn't exist")
+    if user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Your access token doesn't match your id_user_creator")
+    
     survey = await crud.update_survey(db, survey_id, sanitize_string(updated.name), sanitize_string(updated.description))
     if not survey:
         return HTTPException(status_code=404, detail="Survey not found")
@@ -49,8 +53,12 @@ async def update_survey(survey_id: int, updated: schemas.SurveyUpdate, db: Async
 
 @router.delete("/{survey_id}")
 async def delete_survey_by_id(survey_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
-    if (await crud.get_survey_by_id(db, survey_id)).id_user_creator != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your survey")
+    user = await crud.get_user_by_survey_id(db, survey_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User doesn't exist")
+    if user.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Your access token doesn't match your id_user_creator")
+    
     result = await crud.delete_survey(db, survey_id)
     if not result:
         raise HTTPException(status_code=404, detail="Survey not found")

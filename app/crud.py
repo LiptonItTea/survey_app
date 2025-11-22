@@ -54,6 +54,27 @@ async def get_user_by_login_password(db: AsyncSession, nickname: str, password: 
     return result.scalars().first()
 
 
+async def get_user_by_survey_id(db: AsyncSession, survey_id: int) -> Optional[User]:
+    survey = await db.execute(select(Survey).where(Survey.id == survey_id))
+    if not survey:
+        return None
+    return get_user_by_id(db, survey.scalars().first().id_user_creator)
+
+
+async def get_user_by_question_id(db: AsyncSession, question_id: int) -> Optional[User]:
+    question = await db.execute(select(Question).where(Question.id == question_id))
+    if not question:
+        return None
+    return get_user_by_survey_id(db, question.scalars().first().id_survey)
+
+
+async def get_user_by_answer_id(db: AsyncSession, answer_id: int) -> Optional[User]:
+    answer = await db.execute(select(Answer).where(Answer.id == answer_id))
+    if not answer:
+        return None
+    return get_user_by_question_id(db, answer.scalars().first().id_question)
+
+
 async def get_users(db: AsyncSession) -> List[User]:
     result = await db.execute(select(User))
     return result.scalars().all()
@@ -254,6 +275,22 @@ async def get_answer_by_id(db: AsyncSession, answer_id: int) -> Optional[Answer]
 async def get_answers_by_question(db: AsyncSession, question_id: int) -> List[Answer]:
     result = await db.execute(select(Answer).where(Answer.id_question == question_id))
     return result.scalars().all()
+
+
+async def update_answer(db: AsyncSession, answer_id: int, text: str) -> Question:
+    answer = await get_answer_by_id(db, answer_id)
+    if not answer:
+        return None
+    
+    answer.text = text
+
+    try:
+        await db.commit()
+        await db.refresh(answer)
+        return answer
+    except IntegrityError:
+        await db.rollback()
+        raise
 
 
 async def delete_answer(db: AsyncSession, answer_id: int) -> bool:

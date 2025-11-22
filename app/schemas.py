@@ -96,6 +96,10 @@ class AnswerRead(AnswerBase):
         orm_mode = True
 
 
+class AnswerUpdate(AnswerBase):
+    pass
+
+
 # =======================
 # COMPLETED SURVEY SCHEMAS
 # =======================
