@@ -19,7 +19,7 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
     if not user:
         raise HTTPException(status_code=400, detail="No such user found.")
     
-    access_token = create_access_token(data={"sub": user.nickname})
+    access_token = create_access_token(data={"sub": user.nickname, "role": "user"})
 
     response.set_cookie(
         key="access_token",
@@ -33,6 +33,6 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/test")
-async def test(current_user = Depends(crud.get_user_by_token)):
-    return current_user
+# @router.get("/test")
+# async def test(current_user = Depends(crud.get_user_by_token)):
+#     return current_user

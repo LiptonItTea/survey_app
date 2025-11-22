@@ -9,7 +9,7 @@ from .models import (
     CompletedSurvey,
     QuestionAnswer
 )
-from .utils.security import hash_password, verify_password, get_token_nickname, oauth2_scheme
+from .utils.security import hash_password, verify_password, get_token_nickname, get_token_nickname_admin, oauth2_scheme
 
 from fastapi import Request, Depends
 from .db import get_db
@@ -31,6 +31,11 @@ async def get_user_by_id(db: AsyncSession, id: int) -> Optional[User]:
 
 async def get_user_by_token(request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> Optional[User]:
     nickname = get_token_nickname(request, token)
+    return await get_user_by_nickname(db, nickname)
+
+
+async def get_user_by_token_admin(request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> Optional[User]:
+    nickname = get_token_nickname_admin(request, token)
     return await get_user_by_nickname(db, nickname)
 
 
