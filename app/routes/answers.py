@@ -45,10 +45,10 @@ async def read_answer_by_id(answer_id: int, db: AsyncSession = Depends(get_db), 
     return result
 
 
-# @router.get("/byquestion/{question_id}", response_model=List[schemas.AnswerRead])
-# async def read_answers_by_question_id(question_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
-#     result = await crud.getques(db, question_id)
-#     return result
+@router.get("/byquestion/{question_id}", response_model=List[schemas.AnswerRead])
+async def read_answers_by_question_id(question_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
+    result = await crud.get_answers_by_question(db, question_id)
+    return result
 
 
 @router.put("/{answer_id}", response_model=schemas.AnswerRead)
