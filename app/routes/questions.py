@@ -52,7 +52,7 @@ async def read_question_by_survey_id(survey_id: int, db: AsyncSession = Depends(
 
 @router.put("/{question_id}", response_model=schemas.QuestionRead)
 async def update_question(question_id: int, updated: schemas.QuestionUpdate, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
-    user = await crud.get_user_by_survey_id(db, question_id)
+    user = await crud.get_user_by_question_id(db, question_id)
     if not user:
         raise HTTPException(status_code=404, detail="Question doesn't exist")
     if user.id != current_user.id:

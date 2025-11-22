@@ -65,7 +65,7 @@ async def get_user_by_question_id(db: AsyncSession, question_id: int) -> Optiona
     question = await db.execute(select(Question).where(Question.id == question_id))
     if not question:
         return None
-    return get_user_by_survey_id(db, question.scalars().first().id_survey)
+    return await get_user_by_survey_id(db, question.scalars().first().id_survey)
 
 
 async def get_user_by_answer_id(db: AsyncSession, answer_id: int) -> Optional[User]:

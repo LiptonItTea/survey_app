@@ -37,16 +37,22 @@
 
         button {
             cursor: pointer;
-            padding: 5px 10px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #1976d2;
+            background: #1976d2;
+            color: white
         }
 
-        .danger {
+        button.danger {
             background: #c34;
             color: white;
+            border: 1px solid #922;
         }
 
-        .small {
+        button.small {
             font-size: 12px;
+            padding: 3px 6px;
         }
 
         .indent {
@@ -55,6 +61,7 @@
     </style>
 </head>
 <body>
+
 <h1>Edit Survey</h1>
 
 <div>
@@ -86,23 +93,34 @@
             alert("Failed to load survey.");
             return;
         }
-        const data = await res.json();
-        renderSurvey(data);
+        const survey = await res.json();
+
+        document.getElementById("surveyName").value = survey.name;
+        document.getElementById("surveyDesc").value = survey.description || "";
+
+        await loadQuestions();
     }
 
-    function renderSurvey(s) {
-        document.getElementById("surveyName").value = s.name;
-        document.getElementById("surveyDesc").value = s.description || "";
+    async function loadQuestions() {
+        const res = await fetch(`http://localhost:8000/api/questions/bysurvey/${surveyId}`, {
+            credentials: "include"
+        });
+        if (!res.ok) {
+            alert("Failed to load questions.");
+            return;
+        }
 
+        const questions = await res.json();
         const container = document.getElementById("questionsContainer");
         container.innerHTML = "";
 
-        s.questions.forEach(q => {
-            container.appendChild(renderQuestion(q));
-        });
+        for (const q of questions) {
+            const block = await renderQuestion(q);
+            container.appendChild(block);
+        }
     }
 
-    function renderQuestion(q) {
+    async function renderQuestion(q) {
         const div = document.createElement("div");
         div.className = "question-box";
 
@@ -126,8 +144,7 @@
             <button class="add-answer small">Add Answer</button>
         `;
 
-        const saveBtn = div.querySelector(".save-q");
-        saveBtn.onclick = async () => {
+        div.querySelector(".save-q").onclick = async () => {
             const updated = {
                 text: div.querySelector(".q-text").value,
                 multiple_answers: div.querySelector(".q-multi").checked
@@ -143,37 +160,55 @@
             if (!res.ok) alert("Failed to update question");
         };
 
-        const delBtn = div.querySelector(".del-q");
-        delBtn.onclick = async () => {
+        div.querySelector(".del-q").onclick = async () => {
             if (!confirm("Delete question?")) return;
+
             const res = await fetch(`http://localhost:8000/api/questions/${q.id}`, {
                 method: "DELETE",
                 credentials: "include"
             });
+
             if (res.ok) div.remove();
         };
 
-        const answersDiv = div.querySelector(".answers");
+        const answersContainer = div.querySelector(".answers");
+        const answers = await loadAnswers(q.id);
 
-        q.answers.forEach(a => {
-            answersDiv.appendChild(renderAnswer(a));
+        answers.forEach(a => {
+            answersContainer.appendChild(renderAnswer(a));
         });
 
-        const addAnswerBtn = div.querySelector(".add-answer");
-        addAnswerBtn.onclick = async () => {
+        div.querySelector(".add-answer").onclick = async () => {
             const res = await fetch(`http://localhost:8000/api/answers/`, {
                 method: "POST",
                 credentials: "include",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({text: "New answer", question_id: q.id})
+                body: JSON.stringify({
+                    text: "New answer",
+                    question_id: q.id
+                })
             });
+
             if (res.ok) {
                 const newA = await res.json();
-                answersDiv.appendChild(renderAnswer(newA));
+                answersContainer.appendChild(renderAnswer(newA));
             }
         };
 
         return div;
+    }
+
+    async function loadAnswers(questionId) {
+        const res = await fetch(`http://localhost:8000/api/answers/byquestion/${questionId}`, {
+            credentials: "include"
+        });
+
+        if (!res.ok) {
+            alert("Failed to load answers.");
+            return [];
+        }
+
+        return res.json();
     }
 
     function renderAnswer(a) {
@@ -189,22 +224,26 @@
         `;
 
         div.querySelector(".save-a").onclick = async () => {
-            const updated = {text: div.querySelector(".a-text").value};
+            const updated = { text: div.querySelector(".a-text").value };
+
             const res = await fetch(`http://localhost:8000/api/answers/${a.id}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(updated)
             });
+
             if (!res.ok) alert("Failed to update answer");
         };
 
         div.querySelector(".del-a").onclick = async () => {
             if (!confirm("Delete answer?")) return;
+
             const res = await fetch(`http://localhost:8000/api/answers/${a.id}`, {
                 method: "DELETE",
                 credentials: "include"
             });
+
             if (res.ok) div.remove();
         };
 
@@ -224,9 +263,9 @@
         });
 
         if (res.ok) {
-            const q = await res.json();
-            document.getElementById("questionsContainer")
-                .appendChild(renderQuestion(q));
+            const newQ = await res.json();
+            const block = await renderQuestion(newQ);
+            document.getElementById("questionsContainer").appendChild(block);
         }
     };
 
@@ -248,13 +287,13 @@
 
     document.getElementById("deleteSurvey").onclick = async () => {
         if (!confirm("Delete whole survey?")) return;
+
         const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
             method: "DELETE",
             credentials: "include"
         });
-        if (res.ok) {
-            window.location.href = "/dashboard";
-        }
+
+        if (res.ok) window.location.href = "/dashboard";
     };
 
     fetchSurvey();
