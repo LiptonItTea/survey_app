@@ -61,7 +61,7 @@
   </table>
 
 <script>
-const API_BASE = "http://127.0.0.1:8000/api"; // use same origin; or set "http://localhost:8000" if needed
+const API_BASE = "http://localhost:8000/api"; // use same origin; or set "http://localhost:8000" if needed
 const feedback = document.getElementById('feedback');
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -78,7 +78,10 @@ function escapeHtml(s){ return String(s ?? '').replaceAll('&','&amp;').replaceAl
 async function fetchUsers(query=""){
   try {
     let url = `${API_BASE}/users/`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "include"  // allow receiving cookie
+    });
     if(!res.ok) throw new Error(`Failed to load (${res.status})`);
     let users = await res.json();
 
@@ -121,7 +124,8 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
     const res = await fetch(`${API_BASE}/users/`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ nickname, email, password })
+      body: JSON.stringify({ nickname, email, password }),
+      credentials: "include"  // allow receiving cookie
     });
     if (!res.ok) {
       const err = await res.json().catch(()=>null);
@@ -143,7 +147,10 @@ document.querySelector('#usersTable').addEventListener('click', async (ev) => {
   const id = btn.dataset.id;
   if (!confirm(`Delete user #${id}?`)) return;
   try {
-    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/users/${id}`, { 
+      method: 'DELETE',
+      credentials: "include"  // allow receiving cookie
+    });
     if (!res.ok) throw new Error(`Delete failed (${res.status})`);
     showMessage(`Deleted user #${id}`);
     await fetchUsers(searchInput.value);
@@ -184,7 +191,8 @@ document.querySelector('#usersTable').addEventListener('click', async (ev) => {
       const res = await fetch(`${API_BASE}/users/${id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: "include"  // allow receiving cookie
       });
       if (!res.ok) {
         const err = await res.json().catch(()=>null);
@@ -211,8 +219,7 @@ resetBtn.addEventListener('click', ()=>{
   searchInput.value = '';
   fetchUsers();
 });
-
-fetchUsers();
+  fetchUsers();
 </script>
 </body>
 </html>

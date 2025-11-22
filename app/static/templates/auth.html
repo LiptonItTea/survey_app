@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Auth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --gap:12px;
+      --radius:6px;
+      --primary:#1976d2;
+      --danger:#d32f2f;
+    }
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      background: #fafafa;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h2 { margin: 0; }
+
+    form {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      background: white;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"] {
+      height: 40px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+    }
+
+    button {
+      height: 42px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .error { color: var(--danger); min-height: 20px; }
+    .success { color: green; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- LOGIN -->
+    <form id="loginForm">
+      <h2>Login</h2>
+      <div class="error" id="loginError"></div>
+
+      <input id="loginNickname" type="text" placeholder="Nickname" required />
+      <input id="loginPassword" type="password" placeholder="Password" required />
+
+      <button type="submit">Log In</button>
+    </form>
+
+    <!-- SIGNUP -->
+    <form id="signupForm">
+      <h2>Sign Up</h2>
+      <div class="error" id="signupError"></div>
+      <div class="success" id="signupSuccess"></div>
+
+      <input id="signupNickname" type="text" placeholder="Nickname" required />
+      <input id="signupEmail" type="email" placeholder="Email" required />
+      <input id="signupPassword" type="password" placeholder="Password" required />
+
+      <button type="submit">Create Account</button>
+    </form>
+
+  </div>
+
+<script>
+const baseURL = "http://localhost:8000";
+
+function sanitize(str) {
+  return str.replace(/[<>"']/g, "");
+}
+
+/* LOGIN */
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = document.getElementById("loginError");
+  err.textContent = "";
+
+  const username = sanitize(document.getElementById("loginNickname").value.trim());
+  const password = document.getElementById("loginPassword").value;
+
+  const formData = new URLSearchParams();
+  formData.append("username", username);
+  formData.append("password", password);
+
+  try {
+    const res = await fetch(`${baseURL}/auth/token`, {
+      method: "POST",
+      body: formData,   
+      credentials: "include"  // allow receiving cookie
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.detail || "Login failed");
+    }
+
+    location.href = "/users"; // or wherever the main UI is
+  } catch (e) {
+    err.textContent = e.message;
+  }
+});
+
+/* SIGNUP */
+document.getElementById("signupForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = document.getElementById("signupError");
+  const ok = document.getElementById("signupSuccess");
+  err.textContent = "";
+  ok.textContent = "";
+
+  const nickname = sanitize(document.getElementById("signupNickname").value.trim());
+  const email = sanitize(document.getElementById("signupEmail").value.trim());
+  const password = document.getElementById("signupPassword").value;
+
+  try {
+    const res = await fetch(`${baseURL}/api/users`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        nickname, email, password
+      })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.detail || "Signup failed");
+    }
+
+    // user created, now auto-login
+    const formData = new URLSearchParams();
+    formData.append("username", nickname);
+    formData.append("password", password);
+
+    const loginRes = await fetch(`${baseURL}/auth/token`, {
+      method: "POST",
+      body: formData,
+      credentials: "include"
+    });
+
+    if (!loginRes.ok) throw new Error("Login after signup failed");
+
+    ok.textContent = "Account created!";
+    location.href = "/users";
+
+  } catch (e) {
+    err.textContent = e.message;
+  }
+});
+</script>
+</body>
+</html>
