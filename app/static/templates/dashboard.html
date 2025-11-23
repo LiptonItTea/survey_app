@@ -63,6 +63,8 @@
 
 <h2>Your Surveys</h2>
 
+<button class="primary createBtn">New survey</button>
+
 <div id="feedback"></div>
 
 <table id="surveysTable">
@@ -79,7 +81,9 @@
 
 <script>
 const API = "http://localhost:8000/api/surveys";
+const USER_API = "http://localhost:8000/api/users";
 const feedback = document.getElementById("feedback");
+let user = NaN;
 
 function msg(text, isErr=false) {
   feedback.textContent = text;
@@ -137,7 +141,51 @@ function buildTable(items) {
   }
 }
 
+async function fetchUser() {
+  try {
+    const res = await fetch(`${USER_API}/me`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch user");
+
+    user = await res.json();
+  } catch(e) {
+      msg(e.message, true);
+  }
+}
+
 document.addEventListener("click", async (ev) => {
+  //CREATE
+  const create = ev.target.closest(".createBtn");
+  if (create) {
+    try {
+      const created = {
+        name: "Example name",
+        description: "Description",
+        id_user_creator: user.id
+      };
+      const res = await fetch(`${API}`, {
+        method: "POST",
+        body: JSON.stringify(created),
+        headers: {"Content-Type": "application/json"},
+        credentials: "include"
+      });
+
+      if (!res.ok) throw new Error("Failed to unload data");
+
+      const data = await res.json();
+
+      msg(`Survey #${data.id} created!`);
+      fetchMySurveys();
+    } catch (e) {
+      msg(e.message, true);
+    }
+
+    return;
+  }
+  
   // UNLOAD
   const unload = ev.target.closest(".unloadBtn");
   if (unload) {
@@ -182,10 +230,11 @@ document.addEventListener("click", async (ev) => {
   }
 });
 
-// optional small greeting; backend should later expose /me endpoint
-document.getElementById("greeting").textContent = "Welcome, user";
-
 fetchMySurveys();
+fetchUser().then((data) => {document.getElementById("greeting").textContent =  `Welcome, ${user.nickname}`;});
+
+// optional small greeting; backend should later expose /me endpoint
+document.getElementById("greeting").textContent =  `Welcome, `;
 </script>
 
 </body>

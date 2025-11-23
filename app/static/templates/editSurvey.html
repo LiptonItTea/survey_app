@@ -11,8 +11,43 @@
             padding: 20px;
         }
 
+        header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+
+        header a {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border: 1px solid #1976d2;
+        }
+
         h2 {
             margin-top: 40px;
+        }
+
+        #msg {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        #msg.success {
+            background: #daf5da;
+            color: #1b5e20;
+            border: 1px solid #1b5e20;
+        }
+
+        #msg.error {
+            background: #ffd9d9;
+            color: #8a1f1f;
+            border: 1px solid #8a1f1f;
         }
 
         input[type="text"], textarea {
@@ -41,7 +76,7 @@
             border-radius: 6px;
             border: 1px solid #1976d2;
             background: #1976d2;
-            color: white
+            color: white;
         }
 
         button.danger {
@@ -62,7 +97,12 @@
 </head>
 <body>
 
-<h1>Edit Survey</h1>
+<header>
+    <h1>Edit Survey</h1>
+    <a href="/dashboard">Back to Dashboard</a>
+</header>
+
+<div id="msg"></div>
 
 <div>
     <label>Survey name:</label>
@@ -85,12 +125,18 @@
 <script>
     const surveyId = window.location.pathname.split("/").pop();
 
+    function showMsg(text, ok = true) {
+        const msg = document.getElementById("msg");
+        msg.textContent = text;
+        msg.className = ok ? "success" : "error";
+        msg.style.display = "block";
+        setTimeout(() => msg.style.display = "none", 3000);
+    }
+
     async function fetchSurvey() {
-        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
-            credentials: "include"
-        });
+        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, { credentials: "include" });
         if (!res.ok) {
-            alert("Failed to load survey.");
+            showMsg("Failed to load survey", false);
             return;
         }
         const survey = await res.json();
@@ -102,11 +148,10 @@
     }
 
     async function loadQuestions() {
-        const res = await fetch(`http://localhost:8000/api/questions/bysurvey/${surveyId}`, {
-            credentials: "include"
-        });
+        const res = await fetch(`http://localhost:8000/api/questions/bysurvey/${surveyId}`, { credentials: "include" });
+
         if (!res.ok) {
-            alert("Failed to load questions.");
+            showMsg("Failed to load questions", false);
             return;
         }
 
@@ -115,8 +160,7 @@
         container.innerHTML = "";
 
         for (const q of questions) {
-            const block = await renderQuestion(q);
-            container.appendChild(block);
+            container.appendChild(await renderQuestion(q));
         }
     }
 
@@ -157,7 +201,9 @@
                 body: JSON.stringify(updated)
             });
 
-            if (!res.ok) alert("Failed to update question");
+            if (!res.ok) return showMsg("Failed to update question", false);
+
+            showMsg("Question saved");
         };
 
         div.querySelector(".del-q").onclick = async () => {
@@ -168,15 +214,17 @@
                 credentials: "include"
             });
 
-            if (res.ok) div.remove();
+            if (res.ok) {
+                div.remove();
+                showMsg("Question deleted");
+            } else {
+                showMsg("Failed to delete question", false);
+            }
         };
 
         const answersContainer = div.querySelector(".answers");
         const answers = await loadAnswers(q.id);
-
-        answers.forEach(a => {
-            answersContainer.appendChild(renderAnswer(a));
-        });
+        answers.forEach(a => answersContainer.appendChild(renderAnswer(a)));
 
         div.querySelector(".add-answer").onclick = async () => {
             const res = await fetch(`http://localhost:8000/api/answers/`, {
@@ -189,10 +237,11 @@
                 })
             });
 
-            if (res.ok) {
-                const newA = await res.json();
-                answersContainer.appendChild(renderAnswer(newA));
-            }
+            if (!res.ok) return showMsg("Failed to add answer", false);
+
+            const newA = await res.json();
+            answersContainer.appendChild(renderAnswer(newA));
+            showMsg("Answer added");
         };
 
         return div;
@@ -204,7 +253,7 @@
         });
 
         if (!res.ok) {
-            alert("Failed to load answers.");
+            showMsg("Failed to load answers", false);
             return [];
         }
 
@@ -233,7 +282,9 @@
                 body: JSON.stringify(updated)
             });
 
-            if (!res.ok) alert("Failed to update answer");
+            if (!res.ok) return showMsg("Failed to update answer", false);
+
+            showMsg("Answer saved");
         };
 
         div.querySelector(".del-a").onclick = async () => {
@@ -244,7 +295,12 @@
                 credentials: "include"
             });
 
-            if (res.ok) div.remove();
+            if (res.ok) {
+                div.remove();
+                showMsg("Answer deleted");
+            } else {
+                showMsg("Failed to delete answer", false);
+            }
         };
 
         return div;
@@ -262,11 +318,11 @@
             })
         });
 
-        if (res.ok) {
-            const newQ = await res.json();
-            const block = await renderQuestion(newQ);
-            document.getElementById("questionsContainer").appendChild(block);
-        }
+        if (!res.ok) return showMsg("Failed to add question", false);
+
+        const newQ = await res.json();
+        document.getElementById("questionsContainer").appendChild(await renderQuestion(newQ));
+        showMsg("Question added");
     };
 
     document.getElementById("saveSurvey").onclick = async () => {
@@ -282,7 +338,9 @@
             body: JSON.stringify(updated)
         });
 
-        if (!res.ok) alert("Failed to save survey");
+        if (!res.ok) return showMsg("Failed to save survey", false);
+
+        showMsg("Survey saved");
     };
 
     document.getElementById("deleteSurvey").onclick = async () => {
@@ -293,7 +351,12 @@
             credentials: "include"
         });
 
-        if (res.ok) window.location.href = "/dashboard";
+        if (res.ok) {
+            showMsg("Survey deleted");
+            setTimeout(() => window.location.href = "/dashboard", 1000);
+        } else {
+            showMsg("Failed to delete survey", false);
+        }
     };
 
     fetchSurvey();
