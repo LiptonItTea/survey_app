@@ -72,7 +72,7 @@ async def get_user_by_answer_id(db: AsyncSession, answer_id: int) -> Optional[Us
     answer = await db.execute(select(Answer).where(Answer.id == answer_id))
     if not answer:
         return None
-    return get_user_by_question_id(db, answer.scalars().first().id_question)
+    return await get_user_by_question_id(db, answer.scalars().first().id_question)
 
 
 async def get_users(db: AsyncSession) -> List[User]:

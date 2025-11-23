@@ -29,12 +29,6 @@ async def create_answer(answer_in: schemas.AnswerCreate, db: AsyncSession = Depe
     return answer
 
 
-# @router.get("/", response_model=List[schemas.AnswerRead])
-# async def read_answers(db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token_admin)):
-#     result = await crud.getanswers(db)
-#     return result
-
-
 @router.get("/{answer_id}", response_model=schemas.AnswerRead)
 async def read_answer_by_id(answer_id: int, db: AsyncSession = Depends(get_db), current_user = Depends(crud.get_user_by_token)):
     result = await crud.get_question_by_id(db, answer_id)
@@ -71,5 +65,5 @@ async def delete_answer_by_id(answer_id: int, db: AsyncSession = Depends(get_db)
     if user.id != current_user.id:
         raise HTTPException(status_code=403, detail="Your access token doesn't match your id_user_creator")
     
-    result = await crud.delete_answer_by_id(db, answer_id)
+    result = await crud.delete_answer(db, answer_id)
     return "ok"

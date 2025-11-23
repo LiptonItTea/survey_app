@@ -185,7 +185,7 @@
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     text: "New answer",
-                    question_id: q.id
+                    id_question: q.id
                 })
             });
 
@@ -257,7 +257,7 @@
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 text: "New question",
-                survey_id: parseInt(surveyId),
+                id_survey: parseInt(surveyId),
                 multiple_answers: false
             })
         });

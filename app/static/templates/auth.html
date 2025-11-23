@@ -124,7 +124,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       throw new Error(data?.detail || "Login failed");
     }
 
-    location.href = "/users"; // or wherever the main UI is
+    location.href = "/dashboard"; // or wherever the main UI is
   } catch (e) {
     err.textContent = e.message;
   }
@@ -170,7 +170,7 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     if (!loginRes.ok) throw new Error("Login after signup failed");
 
     ok.textContent = "Account created!";
-    location.href = "/users";
+    location.href = "/dashboard";
 
   } catch (e) {
     err.textContent = e.message;
