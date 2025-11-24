@@ -37,13 +37,13 @@ async def complete(survey: SurveyComplete, current_user = Depends(crud.get_user_
             if real_answer is None:
                 raise HTTPException(status_code=404, detail="Answer not found")
             
-            real_question = await crud.get_question_by_id(real_answer.id_question)
+            real_question = await crud.get_question_by_id(db, real_answer.id_question)
             if real_question.id != question.id:
                 raise HTTPException(status_code=403, detail="Question id is wrong")
             if not real_question.multiple_answers and len(question.answers) > 1:
                 raise HTTPException(status_code=403, detail="Too much answers for a question")
             
-            real_survey = await crud.get_survey_by_id(real_question.id_survey)
+            real_survey = await crud.get_survey_by_id(db, real_question.id_survey)
             if real_survey.id != survey.id:
                 raise HTTPException(status_code=403, detail="Survey id is wrong")
             

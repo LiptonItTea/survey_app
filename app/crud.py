@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, distinct
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import (
@@ -346,7 +346,7 @@ async def get_completed_surveys_by_user(db: AsyncSession, user_id: int) -> List[
 
 async def get_completed_surveys_by_survey(db: AsyncSession, survey_id: int) -> int:
     result = await db.execute(
-        select(func.count(CompletedSurvey.id))
+        select(func.count(distinct(CompletedSurvey.id)))
         .join(QuestionAnswer, QuestionAnswer.id_completed_survey == CompletedSurvey.id)
         .join(Answer, Answer.id == QuestionAnswer.id_answer)
         .join(Question, Question.id == Answer.id_question)

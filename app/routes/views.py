@@ -58,3 +58,10 @@ async def edit_survey(request: Request, survey_id: int, db: AsyncSession = Depen
     return templates.TemplateResponse(
         request=request, name="editSurvey.html"
     )
+
+
+@router.get("/complete/{survey_id}", response_class=HTMLResponse)
+async def complete_survey(request: Request, survey_id: int, current_user = Depends(get_user_by_token)):
+    return templates.TemplateResponse(
+        request=request, name="complete.html"
+    )

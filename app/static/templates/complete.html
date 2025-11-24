@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complete Survey</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #1976d2;
+            background: #1976d2;
+            color: white;
+        }
+
+        button.danger {
+            background: #c34;
+            border: 1px solid #922;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+
+        .question-box {
+            border: 1px solid #aaa;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .answer-box {
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+        }
+
+        .msg {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .msg.ok {
+            background: #c8f7c5;
+            border: 1px solid #5a8f5a;
+        }
+
+        .msg.err {
+            background: #f7c5c5;
+            border: 1px solid #8f5a5a;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <button onclick="window.location.href='/dashboard'">Dashboard</button>
+    <button onclick="window.location.href='/account'">Account</button>
+</header>
+
+<div id="msg"></div>
+
+<h1 id="surveyName"></h1>
+<p id="surveyDesc"></p>
+
+<div id="questionsContainer"></div>
+
+<button id="submitBtn">Submit Answers</button>
+
+<script>
+    const surveyId = window.location.pathname.split("/").pop();
+
+    function showMessage(text, isOk = true) {
+        const m = document.getElementById("msg");
+        m.className = "msg " + (isOk ? "ok" : "err");
+        m.textContent = text;
+        setTimeout(() => {
+            m.textContent = "";
+            m.className = "";
+        }, 3000);
+    }
+
+    async function loadSurvey() {
+        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
+            credentials: "include"
+        });
+        if (!res.ok) {
+            showMessage("Failed to load survey.", false);
+            return;
+        }
+        const data = await res.json();
+
+        document.getElementById("surveyName").textContent = data.name;
+        document.getElementById("surveyDesc").textContent = data.description || "";
+
+        await loadQuestions();
+    }
+
+    async function loadQuestions() {
+        const res = await fetch(`http://localhost:8000/api/questions/bysurvey/${surveyId}`, {
+            credentials: "include"
+        });
+        if (!res.ok) {
+            showMessage("Failed to load questions.", false);
+            return;
+        }
+        const questions = await res.json();
+
+        const container = document.getElementById("questionsContainer");
+        container.innerHTML = "";
+
+        for (const q of questions) {
+            const block = await renderQuestion(q);
+            container.appendChild(block);
+        }
+    }
+
+    async function renderQuestion(q) {
+        const div = document.createElement("div");
+        div.className = "question-box";
+        div.dataset.qid = q.id;
+
+        div.innerHTML = `
+            <h3>${q.text}</h3>
+            <div class="answers"></div>
+        `;
+
+        const answersDiv = div.querySelector(".answers");
+        const answers = await loadAnswers(q.id);
+
+        for (const a of answers) {
+            const aDiv = document.createElement("div");
+            aDiv.className = "answer-box";
+            aDiv.innerHTML = `
+                <input type="checkbox" data-aid="${a.id}">
+                <label>${a.text}</label>
+            `;
+            answersDiv.appendChild(aDiv);
+        }
+
+        return div;
+    }
+
+    async function loadAnswers(questionId) {
+        const res = await fetch(`http://localhost:8000/api/answers/byquestion/${questionId}`, {
+            credentials: "include"
+        });
+
+        if (!res.ok) {
+            showMessage("Failed to load answers.", false);
+            return [];
+        }
+
+        return res.json();
+    }
+
+    document.getElementById("submitBtn").onclick = async () => {
+        try {
+            const questions = [...document.querySelectorAll(".question-box")];
+            const payload = {
+                id: parseInt(surveyId),
+                questions: []
+            };
+
+            for (const q of questions) {
+                const qid = parseInt(q.dataset.qid);
+                const answers = [...q.querySelectorAll("input[type='checkbox']:checked")].map(cb => ({
+                    id: parseInt(cb.dataset.aid)
+                }));
+
+                payload.questions.push({
+                    id: qid,
+                    answers: answers
+                });
+            }
+
+            const res = await fetch("http://localhost:8000/api/complete/", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                showMessage("Failed to submit survey.", false);
+                return;
+            }
+
+            showMessage("Survey submitted successfully.");
+        } catch (e) {
+            showMessage("Unexpected error.", false);
+        }
+    };
+
+    loadSurvey();
+</script>
+
+</body>
+</html>
