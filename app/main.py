@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from .db import engine
 from .models import Base
-from .routes import users, surveys, questions, answers, views, auth
+from .routes import users, surveys, questions, answers, views, complete, auth
 from contextlib import asynccontextmanager
 
 
@@ -35,6 +35,7 @@ api.include_router(users.router)
 api.include_router(surveys.router)
 api.include_router(questions.router)
 api.include_router(answers.router)
+api.include_router(complete.router)
 
 app.include_router(api)
 app.include_router(views.router)

@@ -8,7 +8,7 @@ from ..utils.security import sanitize_string
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-router = APIRouter(prefix="/answers", tags=["questions"])
+router = APIRouter(prefix="/answers", tags=["answers"])
 
 
 @router.post("/", response_model=schemas.AnswerRead, status_code=status.HTTP_201_CREATED)

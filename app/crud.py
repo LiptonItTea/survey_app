@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import (
@@ -152,6 +152,15 @@ async def get_survey_by_user_id(db: AsyncSession, user_id: int) -> List[Survey]:
 async def get_survey_by_id(db: AsyncSession, survey_id: int) -> Optional[Survey]:
     result = await db.execute(select(Survey).where(Survey.id == survey_id))
     return result.scalars().first()
+
+
+# async def get_survey_by_answer_id(db: AsyncSession, answer_id: int) -> Optional[Survey]:
+#     answer = (await db.execute(select(Answer).whree(Answer.id == answer_id))).scalars().first()
+#     if answer is None:
+#         return None
+    
+#     question = await get_question_by_id(db, answer.id_question)
+#     return await get_survey_by_id(db, question.id_survey)
 
 
 async def get_all_surveys(db: AsyncSession) -> List[Survey]:
@@ -333,6 +342,18 @@ async def get_completed_survey_by_id(db: AsyncSession, cs_id: int) -> Optional[C
 async def get_completed_surveys_by_user(db: AsyncSession, user_id: int) -> List[CompletedSurvey]:
     result = await db.execute(select(CompletedSurvey).where(CompletedSurvey.id_user == user_id))
     return result.scalars().all()
+
+
+async def get_completed_surveys_by_survey(db: AsyncSession, survey_id: int) -> int:
+    result = await db.execute(
+        select(func.count(CompletedSurvey.id))
+        .join(QuestionAnswer, QuestionAnswer.id_completed_survey == CompletedSurvey.id)
+        .join(Answer, Answer.id == QuestionAnswer.id_answer)
+        .join(Question, Question.id == Answer.id_question)
+        .where(Question.id_survey == survey_id)
+    )
+
+    return result.scalars().first()
 
 
 async def delete_completed_survey(db: AsyncSession, completed_survey_id: int) -> bool:
