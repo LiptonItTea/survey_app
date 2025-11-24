@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Settings</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #1976d2;
+            background: #1976d2;
+            color: white;
+        }
+
+        button.danger {
+            background: #c34;
+            border: 1px solid #922;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 6px;
+            margin: 6px 0 16px;
+            box-sizing: border-box;
+        }
+
+        .msg {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .msg.ok {
+            background: #c8f7c5;
+            border: 1px solid #5a8f5a;
+        }
+
+        .msg.err {
+            background: #f7c5c5;
+            border: 1px solid #8f5a5a;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <button onclick="window.location.href='/dashboard'">Dashboard</button>
+</header>
+
+<h1>Account Settings</h1>
+
+<div id="msg"></div>
+
+<label>Nickname</label>
+<input id="nickname" type="text">
+
+<label>Email</label>
+<input id="email" type="text">
+
+<label>New Password (optional)</label>
+<input id="password" type="password">
+
+<button id="saveBtn">Save Changes</button>
+<button id="deleteBtn" class="danger" style="margin-left: 10px;">Delete Account</button>
+
+<script>
+    let user = NaN;
+    function showMessage(text, isOk = true) {
+        const m = document.getElementById("msg");
+        m.className = "msg " + (isOk ? "ok" : "err");
+        m.textContent = text;
+        setTimeout(() => {
+            m.textContent = "";
+            m.className = "";
+        }, 3000);
+    }
+
+    async function loadUser() {
+        const res = await fetch("http://localhost:8000/api/users/me", {
+            method: "GET",
+            credentials: "include"
+        });
+
+        if (!res.ok) {
+            showMessage("Failed to load user info.", false);
+            return;
+        }
+
+        user = await res.json();
+        document.getElementById("nickname").value = user.nickname;
+        document.getElementById("email").value = user.email;
+    }
+
+    document.getElementById("saveBtn").onclick = async () => {
+        const updated = {
+            nickname: document.getElementById("nickname").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value || null
+        };
+
+        const res = await fetch(`http://localhost:8000/api/users/${user.id}`, {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated)
+        });
+
+        if (!res.ok) {
+            showMessage("Failed to update account.", false);
+            return;
+        }
+
+        showMessage("Account updated successfully.");
+        document.getElementById("password").value = "";
+    };
+
+    document.getElementById("deleteBtn").onclick = async () => {
+        if (!confirm("Delete your account? This cannot be undone.")) return;
+
+        const res = await fetch("http://localhost:8000/api/users/me", {
+            method: "DELETE",
+            credentials: "include"
+        });
+
+        if (!res.ok) {
+            showMessage("Failed to delete account.", false);
+            return;
+        }
+
+        window.location.href = "/";
+    };
+
+    loadUser();
+</script>
+</body>
+</html>

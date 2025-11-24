@@ -65,3 +65,10 @@ async def complete_survey(request: Request, survey_id: int, current_user = Depen
     return templates.TemplateResponse(
         request=request, name="complete.html"
     )
+
+
+@router.get("/account", response_class=HTMLResponse)
+async def account_settings(request: Request, current_user = Depends(get_user_by_token)):
+    return templates.TemplateResponse(
+        request=request, name="account.html"
+    )
