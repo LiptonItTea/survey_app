@@ -199,7 +199,7 @@ document.addEventListener("click", async (ev) => {
         credentials: "include"
       });
 
-      if (!res.ok) throw new Error("Failed to unload data");
+      if (!res.ok) throw new Error("Failed to create survey");
 
       const data = await res.json();
 
@@ -217,18 +217,19 @@ document.addEventListener("click", async (ev) => {
   if (unload) {
     const id = unload.dataset.id;
 
-    try {
-      const res = await fetch(`${API}/unload/${id}`, {
-        method: "GET",
-        credentials: "include"
-      });
+    location.href = `${COMPLETE_API}/stat/${id}`;
+    // try {
+    //   const res = await fetch(`${COMPLETE_API}/stat/${id}`, {
+    //     method: "GET",
+    //     credentials: "include"
+    //   });
 
-      if (!res.ok) throw new Error("Failed to unload data");
+    //   if (!res.ok) throw new Error("Failed to unload data");
 
-      msg(`Survey #${id} unloaded`);
-    } catch (e) {
-      msg(e.message, true);
-    }
+    //   msg(`Survey #${id} unloaded`);
+    // } catch (e) {
+    //   msg(e.message, true);
+    // }
 
     return;
   }

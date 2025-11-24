@@ -61,8 +61,25 @@ class Solves(BaseModel):
 
 @router.get("/solves/{survey_id}", response_model=Solves)
 async def get_total_solves(survey_id: int, current_user = Depends(crud.get_user_by_token), db: AsyncSession = Depends(get_db)):
+    survey = await crud.get_survey_by_id(db, survey_id)
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
     result = await crud.get_completed_surveys_by_survey(db, survey_id)
     return {"count": result}
+
+
+# class Stat(BaseModel):
+    
+
+
+@router.get("/stat/{survey_id}")
+async def get_survey_stat(survey_id: int, current_user = Depends(crud.get_user_by_token), db: AsyncSession = Depends(get_db)):
+    survey = await crud.get_survey_by_id(db, survey_id)
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    return {"stat": await crud.get_survey_stat(db, survey_id)}
     
 
 

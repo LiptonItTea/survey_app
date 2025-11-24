@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, func, distinct
+from sqlalchemy import select, delete, func, distinct, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import (
@@ -161,6 +161,33 @@ async def get_survey_by_id(db: AsyncSession, survey_id: int) -> Optional[Survey]
     
 #     question = await get_question_by_id(db, answer.id_question)
 #     return await get_survey_by_id(db, question.id_survey)
+
+
+async def get_survey_stat(db: AsyncSession, survey_id: int) -> int:
+    query = await db.execute(
+        select(Answer.id, Question.id, func.count(distinct(QuestionAnswer.id_completed_survey)))
+        .select_from(Answer)
+        .join(QuestionAnswer, QuestionAnswer.id_answer == Answer.id, isouter=True) # this is bizarre, but equivalent to QuestionAnswer RIGHT OUTER JOIN Answer
+        .join(Question, Question.id == Answer.id_question)
+        .where(Question.id_survey == survey_id)
+        .group_by(Answer.id, Question.id)
+    )
+    query = query.all()
+    survey = await get_survey_by_id(db, survey_id)
+
+    result = {"survey": survey, "questions": {}}
+    for question in await get_questions_by_survey(db, survey_id):
+        q = {"question": question, "answers": {}}
+        for answer in await get_answers_by_question(db, question.id):
+            a = {"answer": answer, "solves": 0}
+            q["answers"][answer.id] = a
+        
+        result["questions"][question.id] = q
+    
+    for ind, que, cou in query:
+        result["questions"][que]["answers"][ind]["solves"] = cou
+    
+    return result
 
 
 async def get_all_surveys(db: AsyncSession) -> List[Survey]:
