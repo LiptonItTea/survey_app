@@ -45,6 +45,7 @@
     .danger { background: #d32f2f; color: white; }
     .primary { background: #1976d2; color: white; }
     .secondary { background: #666; color: white; }
+    .optional { background: #090; color: white}
 
     #feedback {
       margin-top: 12px;
@@ -80,6 +81,7 @@
 </table>
 
 <script>
+const BASE = "http://localhost:8000";
 const API = "http://localhost:8000/api/surveys";
 const USER_API = "http://localhost:8000/api/users";
 const COMPLETE_API = "http://localhost:8000/api/complete";
@@ -160,6 +162,7 @@ function buildTable(items) {
           <button class="secondary">Edit</button>
         </a>
         <button class="danger deleteBtn" data-id="${s.id}">Delete</button>
+        <button class="optional completeBtn" data-id="${s.id}">Complete</button>
       </td>
     `;
 
@@ -218,19 +221,6 @@ document.addEventListener("click", async (ev) => {
     const id = unload.dataset.id;
 
     location.href = `${COMPLETE_API}/stat/${id}`;
-    // try {
-    //   const res = await fetch(`${COMPLETE_API}/stat/${id}`, {
-    //     method: "GET",
-    //     credentials: "include"
-    //   });
-
-    //   if (!res.ok) throw new Error("Failed to unload data");
-
-    //   msg(`Survey #${id} unloaded`);
-    // } catch (e) {
-    //   msg(e.message, true);
-    // }
-
     return;
   }
 
@@ -254,6 +244,14 @@ document.addEventListener("click", async (ev) => {
     } catch (e) {
       msg(e.message, true);
     }
+  }
+
+  // COMPLETE
+  const com = ev.target.closest(".completeBtn");
+  if (com) {
+    const id = com.dataset.id;
+    
+    location.href = `${BASE}/complete/${id}`;
   }
 });
 
