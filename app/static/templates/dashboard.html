@@ -82,6 +82,7 @@
 <script>
 const API = "http://localhost:8000/api/surveys";
 const USER_API = "http://localhost:8000/api/users";
+const COMPLETE_API = "http://localhost:8000/api/complete";
 const feedback = document.getElementById("feedback");
 let user = NaN;
 
@@ -110,11 +111,36 @@ async function fetchMySurveys() {
     }
 
     const surveys = await res.json();
+    for (let i = 0; i < surveys.length; i++) {
+      const solves = await get_solves_survey(surveys[i].id);
+      surveys[i].solves = solves;
+    }
     buildTable(surveys);
 
   } catch (err) {
     msg(err.message, true);
   }
+}
+
+async function get_solves_survey(surveyId) {
+  try {
+    const res = await fetch(`${COMPLETE_API}/solves/${surveyId}`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      const d = await res.json().catch(()=>null);
+      throw new Error(d?.detail || "Failed to load your surveys");
+    }
+
+    const data = await res.json();
+    return data.count;
+
+  } catch (err) {
+    msg(err.message, true);
+  }
+  return NaN;
 }
 
 function buildTable(items) {
@@ -127,7 +153,7 @@ function buildTable(items) {
     tr.innerHTML = `
       <td>${s.id}</td>
       <td>${escapeHtml(s.name)}</td>
-      <td>${Math.floor(Math.random() * 50) + 1}</td>
+      <td>${s.solves}</td>
       <td>
         <button class="primary unloadBtn" data-id="${s.id}">Unload</button>
         <a href="http://localhost:8000/editSurvey/${s.id}">
