@@ -77,17 +77,19 @@
     <button onclick="window.location.href='/account'">Account</button>
 </header>
 
-<div id="msg"></div>
-
 <h1 id="surveyName"></h1>
 <p id="surveyDesc"></p>
 
 <div id="questionsContainer"></div>
 
+<div id="msg"></div>
+
 <button id="submitBtn">Submit Answers</button>
 
 <script>
     const surveyId = window.location.pathname.split("/").pop();
+    const BASE = `http://localhost:8000`;
+    const API = `${BASE}/api`;
 
     function showMessage(text, isOk = true) {
         const m = document.getElementById("msg");
@@ -100,7 +102,7 @@
     }
 
     async function loadSurvey() {
-        const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}`, {
+        const res = await fetch(`${API}/surveys/${surveyId}`, {
             credentials: "include"
         });
         if (!res.ok) {
@@ -116,7 +118,7 @@
     }
 
     async function loadQuestions() {
-        const res = await fetch(`http://localhost:8000/api/questions/bysurvey/${surveyId}`, {
+        const res = await fetch(`${API}/questions/bysurvey/${surveyId}`, {
             credentials: "include"
         });
         if (!res.ok) {
@@ -161,7 +163,7 @@
     }
 
     async function loadAnswers(questionId) {
-        const res = await fetch(`http://localhost:8000/api/answers/byquestion/${questionId}`, {
+        const res = await fetch(`${API}/answers/byquestion/${questionId}`, {
             credentials: "include"
         });
 
@@ -193,7 +195,7 @@
                 });
             }
 
-            const res = await fetch("http://localhost:8000/api/complete/", {
+            const res = await fetch(`${API}/complete/`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -206,6 +208,9 @@
             }
 
             showMessage("Survey submitted successfully.");
+            setTimeout(() => {
+                location.href = `${BASE}/dashboard`;
+            }, 1000);
         } catch (e) {
             showMessage("Unexpected error.", false);
         }
