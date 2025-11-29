@@ -133,7 +133,7 @@
     document.getElementById("deleteBtn").onclick = async () => {
         if (!confirm("Delete your account? This cannot be undone.")) return;
 
-        const res = await fetch("http://localhost:8000/api/users/me", {
+        const res = await fetch(`http://localhost:8000/api/users/${user.id}`, {
             method: "DELETE",
             credentials: "include"
         });

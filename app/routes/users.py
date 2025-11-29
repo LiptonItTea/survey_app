@@ -28,7 +28,7 @@ async def create_user_endpoint(user_in: schemas.UserCreate, db: AsyncSession = D
 
 
 @router.get("/me", response_model=schemas.UserRead)
-async def read_me(current_user = Depends(crud.get_user_by_token_admin)):
+async def read_me(current_user = Depends(crud.get_user_by_token)):
     return current_user
 
 
